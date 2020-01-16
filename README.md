@@ -1,0 +1,1 @@
+# ezplatform-database-health-checker
