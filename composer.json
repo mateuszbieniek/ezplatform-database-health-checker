@@ -1,0 +1,29 @@
+{
+  "name": "mateuszbieniek/ezplatform-database-health-checker",
+  "license": "MIT",
+  "type": "ezplatform-bundle",
+  "description": "Allows to check the project's database against most common issues",
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://updates.ez.no/ttl"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "MateuszBieniek\\EzPlatformDatabaseHealthCheckerBundle\\": "src/bundle/",
+      "MateuszBieniek\\EzPlatformDatabaseHealthChecker\\": "src/lib/"
+    }
+  },
+  "require": {
+    "php": ">=7.1",
+    "ezsystems/ezpublish-kernel": "^7.5",
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "2.7.*",
+    "phpunit/phpunit": "~7.0"
+  },
+  "scripts": {
+    "fix-cs": "@php ./vendor/bin/php-cs-fixer fix -v --show-progress=estimating"
+  }
+}
