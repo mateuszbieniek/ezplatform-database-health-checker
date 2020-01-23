@@ -4,29 +4,53 @@ declare(strict_types=1);
 
 namespace MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command;
 
+use eZ\Publish\API\Repository\ContentService;
+use eZ\Publish\API\Repository\PermissionResolver;
+use eZ\Publish\API\Repository\Repository;
+use eZ\Publish\Core\MVC\Symfony\SiteAccess;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedAttribute;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedContent;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\GatewayInterface as ContentGateway;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class DatabaseHealthCheckCommand extends Command
 {
-    /**
-     * @var ContentGateway
-     */
+    private const CONTENT_LIMIT = 100;
+
+    /** @var ContentGateway */
     private $contentGateway;
 
-    /**
-     * @var \Symfony\Component\Console\Style\SymfonyStyle
-     */
+    /** @var \eZ\Publish\API\Repository\ContentService */
+    private $contentService;
+
+    /** @var \eZ\Publish\Core\MVC\Symfony\SiteAccess */
+    private $siteAccess;
+
+    /** @var \eZ\Publish\API\Repository\PermissionResolver */
+    private $permissionResolver;
+
+    /** @var \eZ\Publish\API\Repository\Repository */
+    private $repository;
+
+    /** @var \Symfony\Component\Console\Style\SymfonyStyle */
     private $io;
 
-    public function __construct(ContentGateway $contentGateway)
-    {
+    public function __construct(
+        ContentGateway $contentGateway,
+        ContentService $contentService,
+        SiteAccess $siteAccess,
+        PermissionResolver $permissionResolver,
+        Repository $repository
+    ) {
         $this->contentGateway = $contentGateway;
+        $this->contentService = $contentService;
+        $this->siteAccess = $siteAccess;
+        $this->permissionResolver = $permissionResolver;
+        $this->repository = $repository;
 
         parent::__construct();
     }
@@ -37,6 +61,12 @@ class DatabaseHealthCheckCommand extends Command
             ->setName('ezplatform:database-health-check')
             ->setDescription(
                 'This command checks the database against possible corruption.'
+            )
+            ->addOption(
+                'skip-smoke-test',
+                'sst',
+                InputOption::VALUE_NONE,
+                'Skip Smoke testing Content'
             )
             ->setHelp(
                 <<<EOT
@@ -57,23 +87,28 @@ EOT
         parent::initialize($input, $output);
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     * @return int|void|null
-     */
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $this->io->title("eZ Platform Database Health Checker");
         $this->io->warning('This script is working directly on the database! Remember to create a backup before running it.');
 
+        if ($this->siteAccess->name !== 'db-checker') {
+            if (!$this->io->confirm('You should run this command in "db-checker" SiteAccess. Are you sure that you want to continue?', false)) {
+                return;
+            }
+        }
+
         if (!$this->io->confirm('Are you sure that you want to proceed?', false)) {
             return;
         }
 
-        $this->checkContentWithoutAttributes($output);
-        $this->checkContentWithoutVersions($output);
-        $this->checkContentWithDuplicatedAttributes($output);
+        if (!$input->getOption('skip-smoke-test')) {
+            $this->smokeTest();
+        }
+
+        $this->checkContentWithoutAttributes();
+        $this->checkContentWithoutVersions();
+        $this->checkContentWithDuplicatedAttributes();
 
         $this->io->success('Done');
     }
@@ -171,6 +206,54 @@ EOT
             }
         } else {
             $this->io->success('Found: 0');
+        }
+    }
+
+    private function smokeTest()
+    {
+        $this->io->section('Smoke testing Content');
+
+        $contentCount = $this->contentGateway->countContent();
+        $this->io->text('Searching for a Content that throws Exception on load. It may take some time on big databases.');
+
+        $progressBar = $this->io->createProgressBar($contentCount);
+        $erroredContents = [];
+
+        for ($i = 0; $i <= $contentCount; $i += self::CONTENT_LIMIT) {
+            $contentIds = $this->contentGateway->getContentIds($i, self::CONTENT_LIMIT);
+            foreach ($contentIds as $contentId) {
+                try {
+                    $contentService = $this->contentService;
+                    $this->permissionResolver->sudo(
+                        function () use ($contentService, $contentId) {
+                            return $contentService->loadContent($contentId);
+                        },
+                        $this->repository
+                    );
+                } catch (\Exception $e) {
+                    $erroredContents[] = [
+                        'id' => $contentId,
+                        'exception' => $e->getMessage(),
+                    ];
+                }
+                $progressBar->advance(1);
+            }
+        }
+
+        $this->io->text('');
+
+        $erroredContentsCount = count($erroredContents);
+        if ($erroredContentsCount > 0) {
+            $this->io->warning(
+                sprintf('Potentialy broken Content found: %d', $erroredContentsCount)
+            );
+
+            $this->io->table(
+                ['Content ID', 'Error message'],
+                $erroredContents
+            );
+        } else {
+            $this->io->success('Smoke test did not find broken Content');
         }
     }
 }

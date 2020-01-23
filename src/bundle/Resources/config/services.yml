@@ -2,9 +2,24 @@ services:
     MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\DoctrineDatabase:
         arguments:
             $connection: '@ezpublish.persistence.connection'
+            $contentGateway: '@ezpublish.persistence.legacy.content.gateway.inner'
+            $locationGateway: '@ezpublish.persistence.legacy.location.gateway'
+            $fieldHandler: '@ezpublish.persistence.legacy.field_handler'
 
     MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command\DatabaseHealthCheckCommand:
         arguments:
             $contentGateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\DoctrineDatabase'
+            $contentService: '@ezpublish.api.service.content'
+            $siteAccess: '@ezpublish.siteaccess'
+            $permissionResolver: '@eZ\Publish\API\Repository\PermissionResolver'
+            $repository: '@ezpublish.api.repository'
         tags:
             - { name: 'console.command', command: 'ezplatform:database-health-check' }
+
+    cache.null:
+        class: Symfony\Component\Cache\Adapter\NullAdapter
+        arguments: [~]
+        tags:
+            - name: cache.pool
+              clearer: cache.app_clearer
+              namespace: '%cache_namespace%'

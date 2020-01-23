@@ -1,0 +1,5 @@
+siteaccess:
+   list: [db-checker]
+system:
+    db-checker:
+       cache_service_name: 'cache.null'
