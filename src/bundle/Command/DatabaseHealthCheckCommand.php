@@ -118,33 +118,33 @@ EOT
         $this->io->section('Searching for Content without attributes.');
         $this->io->text('It may take some time. Please wait...');
 
-        $contentWithoutAttibutes = $this->contentGateway->findContentWithoutAttributes();
-        $contentWithoutAttibutesCount = count($contentWithoutAttibutes);
+        $contentWithoutAttributes = $this->contentGateway->findContentWithoutAttributes();
+        $contentWithoutAttributesCount = count($contentWithoutAttributes);
 
-        if ($contentWithoutAttibutesCount > 0) {
-            $this->io->caution(sprintf('Found: %d', $contentWithoutAttibutesCount));
-            $this->io->table(
-                ['Content ID', 'Name'],
-                array_map(
-                    function (CorruptedContent $content) {
-                        return [
-                            $content->id,
-                            $content->name,
-                        ];
-                    },
-                    $contentWithoutAttibutes
-                )
-            );
-
-            if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
-                // TODO
-            }
-        } else {
+        if ($contentWithoutAttributesCount <= 0) {
             $this->io->success('Found: 0');
+            return;
+        }
+        $this->io->caution(sprintf('Found: %d', $contentWithoutAttributesCount));
+        $this->io->table(
+            ['Content ID', 'Name'],
+            array_map(
+                function (CorruptedContent $content) {
+                    return [
+                        $content->id,
+                        $content->name,
+                    ];
+                },
+                $contentWithoutAttributes
+            )
+        );
+
+        if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
+            // TODO
         }
     }
 
-    private function checkContentWithoutVersions()
+    private function checkContentWithoutVersions(): void
     {
         $this->io->section('Searching for Content without versions.');
         $this->io->text('It may take some time. Please wait...');
@@ -152,30 +152,30 @@ EOT
         $contentWithoutVersions = $this->contentGateway->findContentWithoutVersions();
         $contentWithoutVersionsCount = count($contentWithoutVersions);
 
-        if ($contentWithoutVersionsCount > 0) {
-            $this->io->caution(sprintf('Found: %d', $contentWithoutVersionsCount));
-            $this->io->table(
-                ['Content ID', 'Name'],
-                array_map(
-                    function (CorruptedContent $content) {
-                        return [
-                            $content->id,
-                            $content->name,
-                        ];
-                    },
-                    $contentWithoutVersions
-                )
-            );
-
-            if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
-                // TODO
-            }
-        } else {
+        if ($contentWithoutVersionsCount <= 0) {
             $this->io->success('Found: 0');
+            return;
+        }
+        $this->io->caution(sprintf('Found: %d', $contentWithoutVersionsCount));
+        $this->io->table(
+            ['Content ID', 'Name'],
+            array_map(
+                function (CorruptedContent $content) {
+                    return [
+                        $content->id,
+                        $content->name,
+                    ];
+                },
+                $contentWithoutVersions
+            )
+        );
+
+        if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
+            // TODO
         }
     }
 
-    private function checkContentWithDuplicatedAttributes()
+    private function checkContentWithDuplicatedAttributes(): void
     {
         $this->io->section('Searching for Content with duplicated attributes.');
         $this->io->text('It may take some time. Please wait...');
@@ -183,33 +183,34 @@ EOT
         $duplicatedAttributes = $this->contentGateway->findDuplicatedAttributes();
         $duplicatedAttributesCount = count($duplicatedAttributes);
 
-        if ($duplicatedAttributesCount > 0) {
-            $this->io->caution(sprintf('Found: %d', $duplicatedAttributesCount));
-            $this->io->table(
-                ['Content ID', 'Version', 'Attribute ID', 'Name', 'Language code'],
-                array_map(
-                    function (CorruptedAttribute $attribute) {
-                        return [
-                            $attribute->corrutpedContent->id,
-                            $attribute->corrutpedContent->version,
-                            $attribute->id,
-                            $attribute->corrutpedContent->name,
-                            $attribute->corrutpedContent->languageCode,
-                        ];
-                    },
-                    $duplicatedAttributes
-                )
-            );
-
-            if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
-                // TODO
-            }
-        } else {
+        if ($duplicatedAttributesCount <= 0) {
             $this->io->success('Found: 0');
+            return;
         }
+        $this->io->caution(sprintf('Found: %d', $duplicatedAttributesCount));
+        $this->io->table(
+            ['Content ID', 'Version', 'Attribute ID', 'Name', 'Language code'],
+            array_map(
+                function (CorruptedAttribute $attribute) {
+                    return [
+                        $attribute->corrutpedContent->id,
+                        $attribute->corrutpedContent->version,
+                        $attribute->id,
+                        $attribute->corrutpedContent->name,
+                        $attribute->corrutpedContent->languageCode,
+                    ];
+                },
+                $duplicatedAttributes
+            )
+        );
+
+        if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
+            // TODO
+        }
+
     }
 
-    private function smokeTest()
+    private function smokeTest(): void
     {
         $this->io->section('Smoke testing Content');
 
@@ -243,17 +244,17 @@ EOT
         $this->io->text('');
 
         $erroredContentsCount = count($erroredContents);
-        if ($erroredContentsCount > 0) {
-            $this->io->warning(
-                sprintf('Potentialy broken Content found: %d', $erroredContentsCount)
-            );
-
-            $this->io->table(
-                ['Content ID', 'Error message'],
-                $erroredContents
-            );
-        } else {
+        if ($erroredContentsCount <= 0) {
             $this->io->success('Smoke test did not find broken Content');
+            return;
         }
+        $this->io->warning(
+            sprintf('Potentialy broken Content found: %d', $erroredContentsCount)
+        );
+
+        $this->io->table(
+            ['Content ID', 'Error message'],
+            $erroredContents
+        );
     }
 }
