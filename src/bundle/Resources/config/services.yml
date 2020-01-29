@@ -1,5 +1,5 @@
 services:
-    MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\DoctrineDatabase:
+    MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\DoctrineDatabase:
         arguments:
             $connection: '@ezpublish.persistence.connection'
             $contentGateway: '@ezpublish.persistence.legacy.content.gateway.inner'
@@ -8,10 +8,11 @@ services:
 
     MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command\DatabaseHealthCheckCommand:
         arguments:
-            $contentGateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\DoctrineDatabase'
+            $contentGateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\DoctrineDatabase'
             $contentService: '@ezpublish.api.service.content'
             $siteAccess: '@ezpublish.siteaccess'
             $permissionResolver: '@eZ\Publish\API\Repository\PermissionResolver'
+            $contentHandler: '@ezpublish.spi.persistence.content_handler'
             $repository: '@ezpublish.api.repository'
         tags:
             - { name: 'console.command', command: 'ezplatform:database-health-check' }

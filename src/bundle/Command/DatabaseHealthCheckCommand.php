@@ -8,9 +8,10 @@ use eZ\Publish\API\Repository\ContentService;
 use eZ\Publish\API\Repository\PermissionResolver;
 use eZ\Publish\API\Repository\Repository;
 use eZ\Publish\Core\MVC\Symfony\SiteAccess;
+use eZ\Publish\SPI\Persistence\Content\Handler;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedAttribute;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedContent;
-use MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\GatewayInterface as ContentGateway;
+use MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\GatewayInterface as ContentGateway;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -36,6 +37,9 @@ class DatabaseHealthCheckCommand extends Command
     /** @var \eZ\Publish\API\Repository\Repository */
     private $repository;
 
+    /** @var \eZ\Publish\SPI\Persistence\Content\Handler */
+    private $contentHandler;
+
     /** @var \Symfony\Component\Console\Style\SymfonyStyle */
     private $io;
 
@@ -44,12 +48,14 @@ class DatabaseHealthCheckCommand extends Command
         ContentService $contentService,
         SiteAccess $siteAccess,
         PermissionResolver $permissionResolver,
+        Handler $contentHandler,
         Repository $repository
     ) {
         $this->contentGateway = $contentGateway;
         $this->contentService = $contentService;
         $this->siteAccess = $siteAccess;
         $this->permissionResolver = $permissionResolver;
+        $this->contentHandler = $contentHandler;
         $this->repository = $repository;
 
         parent::__construct();
@@ -139,8 +145,18 @@ EOT
             )
         );
 
-        if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
-            // TODO
+        $this->io->warning('Fixing this corruption will result in removing affected content from the database.');
+
+        if ($this->io->confirm('Do you want to proceed?', false)) {
+            foreach ($contentWithoutAttributes  as $corruptedContent) {
+                $this->io->text(sprintf('Content ID: %d, Name: %s', $corruptedContent->id, $corruptedContent->name)
+                $contentValidVersions = $this->getContentValidVersionsForLanguage($corruptedContent->id, $corruptedContent->languageCode);
+
+                if (empty($contentValidVersions)) {
+
+                }
+                $this->contentHandler->deleteContent($corruptedContent->id);
+            }
         }
     }
 
@@ -170,8 +186,17 @@ EOT
             )
         );
 
-        if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
-            // TODO
+        $this->io->warning('Fixing this corruption will result in removing affected content from the database.');
+
+        if ($this->io->confirm('Do you want to proceed?', false)) {
+            $progressBar = $this->io->createProgressBar($contentWithoutVersionsCount);
+
+            foreach ($contentWithoutVersions  as $corruptedContent) {
+                $this->contentHandler->deleteContent($corruptedContent->id);
+                $progressBar->advance(1);
+            }
+
+            $this->io->text('');
         }
     }
 
@@ -256,5 +281,13 @@ EOT
             ['Content ID', 'Error message'],
             $erroredContents
         );
+    }
+
+    /**
+     * @return int[]
+     */
+    public function getContentValidVersions(int $contentId): array
+    {
+        return $this->contentGateway->findContentVersionsWithAttributes($contentId);
     }
 }

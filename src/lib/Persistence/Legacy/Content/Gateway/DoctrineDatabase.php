@@ -1,6 +1,6 @@
 <?php
 
-namespace MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content;
+namespace MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\FetchMode;
@@ -68,13 +68,31 @@ class DoctrineDatabase implements GatewayInterface
     /**
      * @inheritDoc
      */
+    public function findContentVersionsWithAttributes(int $contentId): array
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+        $queryBuilder->select('a.version')
+            ->from('ezcontentobject', 'c')
+            ->leftJoin('c', 'ezcontentobject_attribute', 'a', 'c.id = a.contentobject_id')
+            ->where('a.id = ?')
+            ->groupBy('a.version')
+            ->orderBy('a.version','ASC');
+
+        $queryBuilder->setParameter(0, $contentId);
+
+        return $queryBuilder->execute()->fetchAll(FetchMode::COLUMN);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function findContentWithoutVersions(): array
     {
         $queryBuilder = $this->connection->createQueryBuilder();
 
         $queryBuilder->select('c.id, c.name')
             ->from('ezcontentobject', 'c')
-            ->leftJoin('c', 'ezcontentobject_version', 'v', 'c.id = v.contentobject_id')
+            ->innerJoin('c', 'ezcontentobject_version', 'v', 'c.id = v.contentobject_id')
             ->where('v.contentobject_id IS NULL');
 
         $results = $queryBuilder->execute()->fetchAll(FetchMode::ASSOCIATIVE);
