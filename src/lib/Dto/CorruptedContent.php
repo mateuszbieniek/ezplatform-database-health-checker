@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto;
 
 class CorruptedContent
@@ -24,7 +26,7 @@ class CorruptedContent
      */
     public $languageCode;
 
-    public function __construct($id = null, $name = null, $version = null, $languageCode = null)
+    public function __construct(int $id = null, string $name = null, int $version = null, string $languageCode = null)
     {
         $this->id = $id;
         $this->name = $name;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto;
 
 class CorruptedAttribute
@@ -14,7 +16,7 @@ class CorruptedAttribute
      */
     public $id;
 
-    public function __construct($id = null, $corrutpedContent = null)
+    public function __construct(int $id = null, CorruptedContent $corrutpedContent = null)
     {
         $this->id = $id;
         $this->corrutpedContent = $corrutpedContent;

@@ -114,7 +114,7 @@ EOT
 
         $this->checkContentWithoutAttributes();
         $this->checkContentWithoutVersions();
-        $this->checkContentWithDuplicatedAttributes();
+        $this->checkDuplicatedAttributes();
 
         $this->io->success('Done');
     }
@@ -148,15 +148,14 @@ EOT
         $this->io->warning('Fixing this corruption will result in removing affected content from the database.');
 
         if ($this->io->confirm('Do you want to proceed?', false)) {
+            $progressBar = $this->io->createProgressBar($contentWithoutAttributesCount);
+
             foreach ($contentWithoutAttributes  as $corruptedContent) {
-                $this->io->text(sprintf('Content ID: %d, Name: %s', $corruptedContent->id, $corruptedContent->name)
-                $contentValidVersions = $this->getContentValidVersionsForLanguage($corruptedContent->id, $corruptedContent->languageCode);
-
-                if (empty($contentValidVersions)) {
-
-                }
                 $this->contentHandler->deleteContent($corruptedContent->id);
+                $progressBar->advance(1);
             }
+
+            $this->io->text('');
         }
     }
 
@@ -200,9 +199,9 @@ EOT
         }
     }
 
-    private function checkContentWithDuplicatedAttributes(): void
+    private function checkDuplicatedAttributes(): void
     {
-        $this->io->section('Searching for Content with duplicated attributes.');
+        $this->io->section('Searching for duplicated content\'s attributes.');
         $this->io->text('It may take some time. Please wait...');
 
         $duplicatedAttributes = $this->contentGateway->findDuplicatedAttributes();
@@ -229,10 +228,27 @@ EOT
             )
         );
 
-        if ($this->io->confirm('Do you want to attempt on repairing it?', false)) {
-            // TODO
-        }
+        $this->io->warning('Fixing this corruption will result in removing duplicated attribute from the database, leaving one with higher ID.');
+        if ($this->io->confirm('Do you want to proceed?', false)) {
+            $progressBar = $this->io->createProgressBar($duplicatedAttributesCount);
 
+            foreach ($duplicatedAttributes  as $corruptedAttribute) {
+                $this->deleteDuplicatedAttribute($corruptedAttribute);
+                $progressBar->advance(1);
+            }
+
+            $this->io->text('');
+        }
+    }
+
+    private function deleteDuplicatedAttribute(CorruptedAttribute $attribute): void
+    {
+        $this->contentGateway->deleteAttributeDuplicate(
+            $attribute->id,
+            $attribute->corrutpedContent->id,
+            $attribute->corrutpedContent->version,
+            $attribute->corrutpedContent->languageCode
+        );
     }
 
     private function smokeTest(): void
@@ -281,13 +297,5 @@ EOT
             ['Content ID', 'Error message'],
             $erroredContents
         );
-    }
-
-    /**
-     * @return int[]
-     */
-    public function getContentValidVersions(int $contentId): array
-    {
-        return $this->contentGateway->findContentVersionsWithAttributes($contentId);
     }
 }

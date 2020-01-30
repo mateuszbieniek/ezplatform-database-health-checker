@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway;
 
 use Doctrine\DBAL\Connection;
@@ -59,7 +61,7 @@ class DoctrineDatabase implements GatewayInterface
         $results = $queryBuilder->execute()->fetchAll(FetchMode::ASSOCIATIVE);
         $corruptedContent = [];
         foreach ($results as $result) {
-            $corruptedContent[] = new CorruptedContent($result['id'], $result['name']);
+            $corruptedContent[] = new CorruptedContent((int) $result['id'], $result['name']);
         }
 
         return $corruptedContent;
@@ -73,10 +75,10 @@ class DoctrineDatabase implements GatewayInterface
         $queryBuilder = $this->connection->createQueryBuilder();
         $queryBuilder->select('a.version')
             ->from('ezcontentobject', 'c')
-            ->leftJoin('c', 'ezcontentobject_attribute', 'a', 'c.id = a.contentobject_id')
-            ->where('a.id = ?')
+            ->innerJoin('c', 'ezcontentobject_attribute', 'a', 'c.id = a.contentobject_id')
+            ->where('a.contentobject_id = ?')
             ->groupBy('a.version')
-            ->orderBy('a.version','ASC');
+            ->orderBy('a.version', 'ASC');
 
         $queryBuilder->setParameter(0, $contentId);
 
@@ -98,7 +100,7 @@ class DoctrineDatabase implements GatewayInterface
         $results = $queryBuilder->execute()->fetchAll(FetchMode::ASSOCIATIVE);
         $corruptedContent = [];
         foreach ($results as $result) {
-            $corruptedContent[] = new CorruptedContent($result['id'], $result['name']);
+            $corruptedContent[] = new CorruptedContent((int) $result['id'], $result['name']);
         }
 
         return $corruptedContent;
@@ -113,7 +115,7 @@ class DoctrineDatabase implements GatewayInterface
 
         $queryBuilder->select('a.contentobject_id, a.version, a.contentclassattribute_id, c.name, a.language_code')
             ->from('ezcontentobject_attribute', 'a')
-            ->leftJoin('a', 'ezcontentobject', 'c', 'c.id = a.contentobject_id')
+            ->innerJoin('a', 'ezcontentobject', 'c', 'c.id = a.contentobject_id')
             ->groupBy('a.contentobject_id, a.contentclassattribute_id, a.version, a.language_code')
             ->having('count(a.id) > 1');
 
@@ -121,8 +123,8 @@ class DoctrineDatabase implements GatewayInterface
 
         $duplicatedAttributes = [];
         foreach ($results as $result) {
-            $corruptedContent = new CorruptedContent($result['contentobject_id'], $result['name'], $result['version'], $result['language_code']);
-            $duplicatedAttributes[] = new CorruptedAttribute($result['contentclassattribute_id'], $corruptedContent);
+            $corruptedContent = new CorruptedContent((int) $result['contentobject_id'], $result['name'], (int) $result['version'], $result['language_code']);
+            $duplicatedAttributes[] = new CorruptedAttribute((int) $result['contentclassattribute_id'], $corruptedContent);
         }
 
         return $duplicatedAttributes;
@@ -156,23 +158,25 @@ class DoctrineDatabase implements GatewayInterface
         return $queryBuilder->execute()->fetchAll(FetchMode::COLUMN);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function purgeContent(int $contentId): void
+    public function deleteAttributeDuplicate(int $attributeId, int $contentId, int $version, string $languageCode): void
     {
-        $this->locationGateway->removeElementFromTrash(
-            $this->loadContentInfo($contentId)->mainLocationId
-        );
+        $queryBuilder = $this->connection->createQueryBuilder();
 
-        foreach ($this->listVersions($contentId) as $versionInfo) {
-            $this->fieldHandler->deleteFields($contentId, $versionInfo);
-        }
+        //Doctrine QueryBuilder does not support deletes with limit
+        $sql =
+            'DELETE FROM ezcontentobject_attribute ' .
+            'WHERE contentobject_id = :content_id ' .
+            'AND contentclassattribute_id = :attribute_id ' .
+            'AND version = :version ' .
+            'AND language_code = :language_code ' .
+            'ORDER BY id ASC ' .
+            'LIMIT 1';
 
-        $this->contentGateway->removeReverseFieldRelations($contentId);
-        $this->contentGateway->deleteRelations($contentId);
-        $this->contentGateway->deleteVersions($contentId);
-        $this->contentGateway->deleteNames($contentId);
-        $this->contentGateway->deleteContent($contentId);
+        $queryBuilder->getConnection()->prepare($sql)->execute([
+            ':content_id' => $contentId,
+            ':attribute_id' => $attributeId,
+            ':version' => $version,
+            ':language_code' => $languageCode,
+        ]);
     }
 }
