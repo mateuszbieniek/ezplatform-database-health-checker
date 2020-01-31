@@ -6,11 +6,11 @@ namespace MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Cont
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\FetchMode;
-use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedAttribute;
-use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedContent;
+use eZ\Publish\Core\Persistence\Legacy\Content\FieldHandler;
 use eZ\Publish\Core\Persistence\Legacy\Content\Gateway\DoctrineDatabase as ContentGateway;
 use eZ\Publish\Core\Persistence\Legacy\Content\Location\Gateway as LocationGateway;
-use eZ\Publish\Core\Persistence\Legacy\Content\FieldHandler;
+use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedAttribute;
+use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedContent;
 
 class DoctrineDatabase implements GatewayInterface
 {
@@ -47,7 +47,7 @@ class DoctrineDatabase implements GatewayInterface
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function findContentWithoutAttributes(): array
     {
@@ -68,7 +68,7 @@ class DoctrineDatabase implements GatewayInterface
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function findContentVersionsWithAttributes(int $contentId): array
     {
@@ -86,7 +86,7 @@ class DoctrineDatabase implements GatewayInterface
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function findContentWithoutVersions(): array
     {
@@ -107,7 +107,7 @@ class DoctrineDatabase implements GatewayInterface
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function findDuplicatedAttributes(): array
     {
@@ -131,7 +131,7 @@ class DoctrineDatabase implements GatewayInterface
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function countContent(): int
     {
@@ -140,11 +140,11 @@ class DoctrineDatabase implements GatewayInterface
         $queryBuilder->select('COUNT(c.id)')
             ->from('ezcontentobject', 'c');
 
-        return $queryBuilder->execute()->fetch(FetchMode::NUMERIC)[0];
+        return (int) $queryBuilder->execute()->fetch(FetchMode::NUMERIC)[0];
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function getContentIds(int $offset, int $limit): array
     {

@@ -66,21 +66,24 @@ class DatabaseHealthCheckCommand extends Command
         $this
             ->setName('ezplatform:database-health-check')
             ->setDescription(
-                'This command checks the database against possible corruption.'
+                'This command allows you to check your database against know database corruption and fixes them.'
             )
             ->addOption(
                 'skip-smoke-test',
-                'sst',
+                null,
                 InputOption::VALUE_NONE,
-                'Skip Smoke testing Content'
+                'Skip Smoke Test'
             )
             ->setHelp(
                 <<<EOT
-The command <info>%command.name%</info> checks the databased against possible corruptions. When corruption is found is 
-fixed automatically.
+The command <info>%command.name%</info> allows you to check your database against know database corruption and fixes them.
 
-Since this script can potentially run for a very long time, to avoid memory exhaustion run it in
-production environment using <info>--env=prod</info> switch.
+Please note that Command may run for a long time (depending on project size). You can speed it up by skipping Smoke 
+Testing with --skip-smoke-test option.
+
+After running command is recommended to regenerate URL aliases, clear persistence cache and reindex.
+
+!As the script directly modifies the Database always perform a backup before running it!
 
 EOT
             );
@@ -95,17 +98,17 @@ EOT
 
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
-        $this->io->title("eZ Platform Database Health Checker");
-        $this->io->warning('This script is working directly on the database! Remember to create a backup before running it.');
-
-        if ($this->siteAccess->name !== 'db-checker') {
-            if (!$this->io->confirm('You should run this command in "db-checker" SiteAccess. Are you sure that you want to continue?', false)) {
-                return;
-            }
-        }
+        $this->io->title('eZ Platform Database Health Checker');
+        $this->io->warning('Fixing corruption will modify your database! Always perform the database backup before running this command!');
 
         if (!$this->io->confirm('Are you sure that you want to proceed?', false)) {
             return;
+        }
+
+        if ($this->siteAccess->name !== 'db-checker') {
+            if (!$this->io->confirm('It is recommended to run this command in "db-checker" SiteAccess. Are you sure that you want to continue?', false)) {
+                return;
+            }
         }
 
         if (!$input->getOption('skip-smoke-test')) {
@@ -129,6 +132,7 @@ EOT
 
         if ($contentWithoutAttributesCount <= 0) {
             $this->io->success('Found: 0');
+
             return;
         }
         $this->io->caution(sprintf('Found: %d', $contentWithoutAttributesCount));
@@ -169,6 +173,7 @@ EOT
 
         if ($contentWithoutVersionsCount <= 0) {
             $this->io->success('Found: 0');
+
             return;
         }
         $this->io->caution(sprintf('Found: %d', $contentWithoutVersionsCount));
@@ -209,6 +214,7 @@ EOT
 
         if ($duplicatedAttributesCount <= 0) {
             $this->io->success('Found: 0');
+
             return;
         }
         $this->io->caution(sprintf('Found: %d', $duplicatedAttributesCount));
@@ -287,8 +293,10 @@ EOT
         $erroredContentsCount = count($erroredContents);
         if ($erroredContentsCount <= 0) {
             $this->io->success('Smoke test did not find broken Content');
+
             return;
         }
+
         $this->io->warning(
             sprintf('Potentialy broken Content found: %d', $erroredContentsCount)
         );
