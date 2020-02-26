@@ -162,7 +162,7 @@ class DoctrineDatabase implements GatewayInterface
     {
         $queryBuilder = $this->connection->createQueryBuilder();
 
-        //Doctrine QueryBuilder does not support deletes with limit
+        //Doctrine QueryBuilder does not support delete with limit
         $sql =
             'DELETE FROM ezcontentobject_attribute ' .
             'WHERE contentobject_id = :content_id ' .
