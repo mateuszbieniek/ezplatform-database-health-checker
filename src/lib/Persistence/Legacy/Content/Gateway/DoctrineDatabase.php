@@ -181,7 +181,6 @@ class DoctrineDatabase implements GatewayInterface
     }
 
     /**
-     * @param int $contentId
      * @return int[]
      */
     public function getAllLocationIds(int $contentId): array

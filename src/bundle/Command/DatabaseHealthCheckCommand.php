@@ -9,6 +9,7 @@ use eZ\Publish\API\Repository\LocationService;
 use eZ\Publish\API\Repository\PermissionResolver;
 use eZ\Publish\API\Repository\Repository;
 use eZ\Publish\Core\MVC\Symfony\SiteAccess;
+use eZ\Publish\SPI\Persistence\Handler;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedAttribute;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Dto\CorruptedContent;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\GatewayInterface as ContentGateway;
@@ -19,7 +20,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use eZ\Publish\SPI\Persistence\Handler;
 
 class DatabaseHealthCheckCommand extends Command
 {
@@ -30,7 +30,7 @@ class DatabaseHealthCheckCommand extends Command
     private const ACTIONS = [
         self::ACTION_SKIP,
         self::ACTION_DELETE,
-        self::ACTION_SWAP
+        self::ACTION_SWAP,
     ];
 
     /** @var ContentGateway */
@@ -321,7 +321,7 @@ EOT
     private function hasLocationChildren(int $locationId): bool
     {
         $subtreeIds = $this->persistenceHandler->locationHandler()->loadSubtreeIds($locationId);
-        if(!empty($subtreeIds) && count($subtreeIds) > 1) {
+        if (!empty($subtreeIds) && count($subtreeIds) > 1) {
             return true;
         }
 
@@ -374,13 +374,11 @@ EOT
             $corruptedParentLocationQuestion->setErrorMessage('Option %s is invalid.');
 
             $locationToSwapQuestion = new Question('Please provide ID of Location to swap:');
-            $locationToSwapQuestion->setValidator(function($answer) {
+            $locationToSwapQuestion->setValidator(function ($answer) {
                 try {
                     $this->locationService->loadLocation((int) $answer);
                 } catch (\Exception $exception) {
-                    throw new \RuntimeException(
-                        sprintf('Could not load location with ID %s. Please, try again.', $answer)
-                    );
+                    throw new \RuntimeException(sprintf('Could not load location with ID %s. Please, try again.', $answer));
                 }
 
                 return $answer;
@@ -413,7 +411,7 @@ EOT
                     }
                 }
 
-                if($action === self::ACTION_DELETE) {
+                if ($action === self::ACTION_DELETE) {
                     $this->persistenceHandler->contentHandler()->deleteContent($singleCorruptedContent->id);
                     $this->contentGateway->removeContentFromTrash($singleCorruptedContent->id);
                 }
