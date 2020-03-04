@@ -35,5 +35,7 @@ interface GatewayInterface
 
     public function deleteAttributeDuplicate(int $attributeId, int $contentId, int $version, string $languageCode): void;
 
-    public function checkIfContentIsParent(int $contentId): bool;
+    public function getAllLocationIds(int $contentId): array;
+
+    public function removeContentFromTrash(int $contentId): void;
 }

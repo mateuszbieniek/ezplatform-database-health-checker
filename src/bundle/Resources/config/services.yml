@@ -10,9 +10,10 @@ services:
         arguments:
             $contentGateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\DoctrineDatabase'
             $contentService: '@ezpublish.api.service.content'
+            $locationService: '@ezpublish.api.service.location'
             $siteAccess: '@ezpublish.siteaccess'
             $permissionResolver: '@eZ\Publish\API\Repository\PermissionResolver'
-            $contentHandler: '@ezpublish.spi.persistence.content_handler'
+            $handler: '@ezpublish.api.storage_engine'
             $repository: '@ezpublish.api.repository'
         tags:
             - { name: 'console.command', command: 'ezplatform:database-health-check' }

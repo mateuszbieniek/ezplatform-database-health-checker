@@ -94,7 +94,7 @@ class DoctrineDatabase implements GatewayInterface
 
         $queryBuilder->select('c.id, c.name')
             ->from('ezcontentobject', 'c')
-            ->innerJoin('c', 'ezcontentobject_version', 'v', 'c.id = v.contentobject_id')
+            ->leftJoin('c', 'ezcontentobject_version', 'v', 'c.id = v.contentobject_id')
             ->where('v.contentobject_id IS NULL');
 
         $results = $queryBuilder->execute()->fetchAll(FetchMode::ASSOCIATIVE);
@@ -178,5 +178,33 @@ class DoctrineDatabase implements GatewayInterface
             ':version' => $version,
             ':language_code' => $languageCode,
         ]);
+    }
+
+    /**
+     * @param int $contentId
+     * @return int[]
+     */
+    public function getAllLocationIds(int $contentId): array
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+
+        $queryBuilder->select('t.node_id')
+            ->from('ezcontentobject_tree', 't')
+            ->where('t.contentobject_id = ?');
+
+        $queryBuilder->setParameter(0, $contentId);
+
+        return $queryBuilder->execute()->fetchAll(FetchMode::COLUMN);
+    }
+
+    public function removeContentFromTrash(int $contentId): void
+    {
+        $queryBuilder = $this->connection->createQueryBuilder();
+
+        $queryBuilder->delete('ezcontentobject_trash')
+            ->where('contentobject_id = ?');
+        $queryBuilder->setParameter(0, $contentId);
+
+        $queryBuilder->execute();
     }
 }
