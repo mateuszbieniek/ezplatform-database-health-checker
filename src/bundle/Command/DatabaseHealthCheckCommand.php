@@ -20,7 +20,6 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use eZ\Publish\SPI\Persistence\Handler;
-use function foo\func;
 
 class DatabaseHealthCheckCommand extends Command
 {
