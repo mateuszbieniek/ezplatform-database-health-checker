@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command;
 
+use Doctrine\DBAL\Connection;
+use eZ\Bundle\EzPublishCoreBundle\ApiLoader\RepositoryConfigurationProvider;
 use eZ\Publish\API\Repository\ContentService;
 use eZ\Publish\API\Repository\LocationService;
 use eZ\Publish\API\Repository\PermissionResolver;
@@ -57,6 +59,9 @@ class DatabaseHealthCheckCommand extends Command
     /** @var \Symfony\Component\Console\Style\SymfonyStyle */
     private $io;
 
+    /** @var \eZ\Bundle\EzPublishCoreBundle\ApiLoader\RepositoryConfigurationProvider */
+    private $repositoryConfigurationProvider;
+
     public function __construct(
         ContentGateway $contentGateway,
         ContentService $contentService,
@@ -64,7 +69,8 @@ class DatabaseHealthCheckCommand extends Command
         SiteAccess $siteAccess,
         PermissionResolver $permissionResolver,
         Handler $handler,
-        Repository $repository
+        Repository $repository,
+        Connection $connection
     ) {
         $this->contentGateway = $contentGateway;
         $this->contentService = $contentService;
@@ -73,6 +79,7 @@ class DatabaseHealthCheckCommand extends Command
         $this->permissionResolver = $permissionResolver;
         $this->persistenceHandler = $handler;
         $this->repository = $repository;
+        $this->connection = $connection;
 
         parent::__construct();
     }
@@ -124,6 +131,10 @@ EOT
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $this->io->title('eZ Platform Database Health Checker');
+        $this->io->text(
+            sprintf('Using database: <info>%s</info>', $this->connection->getDatabase())
+        );
+
         $this->io->warning(
             'Fixing corruption will modify your database! Always perform the database backup before running this command!'
         );

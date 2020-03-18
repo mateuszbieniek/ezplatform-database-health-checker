@@ -15,6 +15,7 @@ services:
             $permissionResolver: '@eZ\Publish\API\Repository\PermissionResolver'
             $handler: '@ezpublish.api.storage_engine'
             $repository: '@ezpublish.api.repository'
+            $connection: '@ezpublish.persistence.connection'
         tags:
             - { name: 'console.command', command: 'ezplatform:database-health-check' }
 
