@@ -15,7 +15,8 @@ If corruption is found, you will be asked if you want to fix it.
 *Fixing corruption will modify your database! Always perform the database backup before running this command!*
 
 All Content's location will be checked for subitems, before removing it. In the case of existing subitems, you will be 
-presented with an option to swap location with a different one, so subitems are preserved.
+presented with an option to swap location with a different one, so subitems are preserved (Content won't be deleted after
+swap so script has to be re-run if you wish to delete corrupted Content).
 
 ```
 php -d memory_limit=-1 bin/console ezplatform:database-health-check --siteaccess=db-checker
