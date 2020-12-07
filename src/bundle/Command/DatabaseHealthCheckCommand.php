@@ -296,7 +296,7 @@ EOT
                     $contentService = $this->contentService;
                     $this->permissionResolver->sudo(
                         function () use ($contentService, $contentId) {
-                            return $contentService->loadContent($contentId);
+                            return $contentService->loadContent((int) $contentId);
                         },
                         $this->repository
                     );
@@ -374,7 +374,7 @@ EOT
         );
 
         if ($this->io->confirm('Do you want to proceed?', false)) {
-            $progressBar = $this->io->createProgressBar($corruptedContent);
+            $progressBar = $this->io->createProgressBar($count);
 
             $helper = $this->getHelper('question');
             $corruptedParentLocationQuestion = new ChoiceQuestion(
