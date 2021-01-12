@@ -31,6 +31,8 @@ php -d memory_limit=-1 bin/console ezplatform:database-health-check --siteaccess
 Please note that Command may run for a long time (depending on project size). You can speed it up by skipping Smoke Testing with `--skip-smoke-test` option.
 
 ### ezplatform:page-fieldtype-cleanup
+*Warning! This command is only available for Enterprise versions of the platform.*
+
 This command searches your database for `ezpage_*` records which are leftovers from https://issues.ibexa.co/browse/EZEE-3430
 and deletes them if necessary to prevent uncontrolled growth of the database.
 
