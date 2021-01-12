@@ -19,6 +19,13 @@ services:
         tags:
             - { name: 'console.command', command: 'ezplatform:database-health-check' }
 
+    MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command\PageFieldTypeCleanupCommand:
+        arguments:
+            $connection: '@ezpublish.persistence.connection'
+            $pageFieldTypeGateway: '@?EzSystems\EzPlatformPageFieldType\FieldType\Page\Storage\DoctrineGateway'
+        tags:
+            - { name: 'console.command', command: 'ezplatform:page-fieldtype-cleanup' }
+
     cache.null:
         class: Symfony\Component\Cache\Adapter\NullAdapter
         arguments: [~]
