@@ -6,6 +6,11 @@ services:
             $locationGateway: '@ezpublish.persistence.legacy.location.gateway'
             $fieldHandler: '@ezpublish.persistence.legacy.field_handler'
 
+    MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\PageFieldTypeDoctrineDatabase:
+        arguments:
+            $connection: '@ezpublish.persistence.connection'
+            $pageFieldTypeGateway: '@?EzSystems\EzPlatformPageFieldType\FieldType\Page\Storage\DoctrineGateway'
+
     MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command\DatabaseHealthCheckCommand:
         arguments:
             $contentGateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\DoctrineDatabase'
@@ -15,14 +20,12 @@ services:
             $permissionResolver: '@eZ\Publish\API\Repository\PermissionResolver'
             $handler: '@ezpublish.api.storage_engine'
             $repository: '@ezpublish.api.repository'
-            $connection: '@ezpublish.persistence.connection'
         tags:
             - { name: 'console.command', command: 'ezplatform:database-health-check' }
 
     MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command\PageFieldTypeCleanupCommand:
         arguments:
-            $connection: '@ezpublish.persistence.connection'
-            $pageFieldTypeGateway: '@?EzSystems\EzPlatformPageFieldType\FieldType\Page\Storage\DoctrineGateway'
+            $gateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\PageFieldTypeDoctrineDatabase'
         tags:
             - { name: 'console.command', command: 'ezplatform:page-fieldtype-cleanup' }
 

@@ -17,7 +17,7 @@ class DoctrineDatabase implements GatewayInterface
     /**
      * @var \Doctrine\DBAL\Connection
      */
-    protected $connection;
+    public $connection;
 
     /**
      * @var ContentGateway
