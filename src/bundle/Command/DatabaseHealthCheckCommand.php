@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command;
 
-use Doctrine\DBAL\Connection;
-use eZ\Bundle\EzPublishCoreBundle\ApiLoader\RepositoryConfigurationProvider;
 use eZ\Publish\API\Repository\ContentService;
 use eZ\Publish\API\Repository\LocationService;
 use eZ\Publish\API\Repository\PermissionResolver;
@@ -59,9 +57,6 @@ class DatabaseHealthCheckCommand extends Command
     /** @var \Symfony\Component\Console\Style\SymfonyStyle */
     private $io;
 
-    /** @var \eZ\Bundle\EzPublishCoreBundle\ApiLoader\RepositoryConfigurationProvider */
-    private $repositoryConfigurationProvider;
-
     public function __construct(
         ContentGateway $contentGateway,
         ContentService $contentService,
@@ -69,8 +64,7 @@ class DatabaseHealthCheckCommand extends Command
         SiteAccess $siteAccess,
         PermissionResolver $permissionResolver,
         Handler $handler,
-        Repository $repository,
-        Connection $connection
+        Repository $repository
     ) {
         $this->contentGateway = $contentGateway;
         $this->contentService = $contentService;
@@ -79,7 +73,6 @@ class DatabaseHealthCheckCommand extends Command
         $this->permissionResolver = $permissionResolver;
         $this->persistenceHandler = $handler;
         $this->repository = $repository;
-        $this->connection = $connection;
 
         parent::__construct();
     }
@@ -128,11 +121,11 @@ EOT
         parent::initialize($input, $output);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): ?int
     {
         $this->io->title('eZ Platform Database Health Checker');
         $this->io->text(
-            sprintf('Using database: <info>%s</info>', $this->connection->getDatabase())
+            sprintf('Using database: <info>%s</info>', $this->contentGateway->connection->getDatabase())
         );
 
         $this->io->warning(
@@ -140,7 +133,7 @@ EOT
         );
 
         if (!$this->io->confirm('Are you sure that you want to proceed?', false)) {
-            return;
+            return 0;
         }
 
         if ($this->siteAccess->name !== 'db-checker') {
@@ -148,7 +141,7 @@ EOT
                 'It is recommended to run this command in "db-checker" SiteAccess. Are you sure that you want ' .
                 'to continue?',
                 false)) {
-                return;
+                return 0;
             }
         }
 
@@ -161,6 +154,8 @@ EOT
         $this->checkDuplicatedAttributes();
 
         $this->io->success('Done');
+
+        return 0;
     }
 
     private function checkContentWithoutAttributes(InputInterface $input, OutputInterface $output)
