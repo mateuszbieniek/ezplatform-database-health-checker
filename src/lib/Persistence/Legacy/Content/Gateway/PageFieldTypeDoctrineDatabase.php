@@ -85,10 +85,5 @@ class PageFieldTypeDoctrineDatabase implements PageFieldTypeGatewayInterface
                 $this->pageFieldTypeGateway->removeZone((int) $attribute['zone_id']);
             }
         }
-
-        foreach ($this->pageFieldTypeGateway->loadZonesAssignedToPage($pageId) as $zone) {
-            $this->pageFieldTypeGateway->unassignZoneFromPage((int) $zone['id'], $pageId);
-            $this->pageFieldTypeGateway->removeZone((int) $zone['id']);
-        }
     }
 }

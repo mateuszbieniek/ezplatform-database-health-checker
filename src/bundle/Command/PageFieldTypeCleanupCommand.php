@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command;
 
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\PageFieldTypeGatewayInterface as Gateway;
-use Symfony\Bundle\MakerBundle\Validator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Validator\Constraints\Regex;
-use Symfony\Component\Validator\Validation;
 
 class PageFieldTypeCleanupCommand extends Command
 {
+    const PAGE_LIMIT = 100;
+
     /** @var \Symfony\Component\Console\Style\SymfonyStyle */
     private $io;
 
@@ -79,22 +77,11 @@ EOT
             return 0;
         }
 
-        $helper = $this->getHelper('question');
-
-        $question = new Question('Please enter the limit of pages to be iterated:', 100);
-        $validation = Validation::createCallable(new Regex([
-            'pattern' => '/^\d+$/',
-            'message' => 'The input should be an integer',
-        ]));
-        $question->setValidator($validation);
-
-        $limit = (int) $helper->ask($input, $output, $question);
-
         if ($this->countOrphanedPageRelations() <= 0) {
             return 0;
         }
 
-        $this->deleteOrphanedPageRelations($limit);
+        $this->deleteOrphanedPageRelations();
 
         $this->io->success('Done');
 
@@ -112,21 +99,21 @@ EOT
         return $count;
     }
 
-    private function deleteOrphanedPageRelations(int $limit): void
+    private function deleteOrphanedPageRelations(): void
     {
         if (!$this->io->confirm(
             sprintf('Are you sure that you want to proceed? The maximum number of pages that will be cleaned
-             in this iteration is equal to %d.', $limit),
+             in first iteration is equal to %d.', self::PAGE_LIMIT),
             false)
         ) {
             return;
         }
 
-        $records = $this->gateway->getOrphanedPageRelations($limit);
+        $records = $this->gateway->getOrphanedPageRelations(self::PAGE_LIMIT);
 
         $progressBar = $this->io->createProgressBar(count($records));
 
-        for ($i = 0; $i < $limit; ++$i) {
+        for ($i = 0; $i < self::PAGE_LIMIT; ++$i) {
             if (isset($records[$i])) {
                 $progressBar->advance(1);
                 $this->gateway->removePage((int) $records[$i]);
