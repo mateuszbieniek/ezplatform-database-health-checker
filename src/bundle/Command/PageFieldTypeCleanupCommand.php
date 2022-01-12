@@ -96,33 +96,29 @@ EOT
 
         $limit = (int) $helper->ask($input, $output, $question);
 
-        $count = $this->countOrphanedPageRelations();
-
-        if ($count) {
-            $this->deleteOrphanedPageRelations($limit);
-        }
+        $this->countOrphanedPageRelations();
+        $this->deleteOrphanedPageRelations($limit);
 
         $this->io->success('Done');
 
         return 0;
     }
 
-    private function countOrphanedPageRelations(): int
+    private function countOrphanedPageRelations(): void
     {
         $count = $this->gateway->countOrphanedPageRelations();
 
         $count <= 0
             ? $this->io->success('Found: 0')
             : $this->io->caution(sprintf('Found: %d orphaned pages', $count));
-
-        return $count;
     }
 
     private function deleteOrphanedPageRelations(int $limit): void
     {
         if (!$this->io->confirm(
             sprintf('Are you sure that you want to proceed? The maximum number of pages that will be cleaned
-             in this iteration is equal to %d.', $limit),
+             in this iteration is equal to %d. If the number is equal to 0 you can still continue to run the remaining
+             cleaning methods.', $limit),
             false)
         ) {
             return;
