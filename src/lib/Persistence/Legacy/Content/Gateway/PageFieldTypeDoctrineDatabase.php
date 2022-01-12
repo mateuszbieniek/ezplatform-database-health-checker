@@ -91,4 +91,124 @@ class PageFieldTypeDoctrineDatabase implements PageFieldTypeGatewayInterface
             $this->pageFieldTypeGateway->removeZone((int) $zone['id']);
         }
     }
+
+    public function getOrphanedBlockIds(int $limit): array
+    {
+        $zonesQuery = $this->connection->createQueryBuilder();
+        $zonesQuery = $zonesQuery->select('id')
+            ->from('ezpage_zones')
+            ->getSQL();
+
+        $orphanedBlocksQuery = $this->connection->createQueryBuilder();
+        $orphanedBlocksQuery->select('block_id')
+            ->from('ezpage_map_blocks_zones', 'bz')
+            ->where(
+                $orphanedBlocksQuery->expr()->notIn(
+                    'zone_id',
+                    $zonesQuery
+                )
+            )
+            ->setMaxResults($limit);
+
+        return $orphanedBlocksQuery->execute()->fetchAll(FetchMode::COLUMN);
+    }
+
+    public function getOrphanedAttributeIds(array $blockIds): array
+    {
+        $orphanedAttributesQuery = $this->connection->createQueryBuilder();
+        $orphanedAttributesQuery->select('attribute_id')
+            ->from('ezpage_map_attributes_blocks')
+            ->where(
+                $orphanedAttributesQuery->expr()->in(
+                    'block_id',
+                    $orphanedAttributesQuery->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        return $orphanedAttributesQuery->execute()->fetchAll(FetchMode::COLUMN);
+    }
+
+    public function removeOrphanedBlockAttributes(array $attributeIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_map_attributes_blocks')
+            ->where(
+                $query->expr()->in(
+                    'attribute_id',
+                    $query->createPositionalParameter($attributeIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    public function removeOrphanedAttributes(array $attributeIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_attributes')
+            ->where(
+                $query->expr()->in(
+                    'id',
+                    $query->createPositionalParameter($attributeIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    public function removeOrphanedBlockDesigns(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_blocks_design')
+            ->where(
+                $query->expr()->in(
+                    'block_id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    public function removeOrphanedBlockVisibilities(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_blocks_visibility')
+            ->where(
+                $query->expr()->in(
+                    'block_id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    public function removeOrphanedBlocksZones(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_map_blocks_zones')
+            ->where(
+                $query->expr()->in(
+                    'block_id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    public function removeOrphanedBlocks(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_blocks')
+            ->where(
+                $query->expr()->in(
+                    'id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
 }

@@ -90,10 +90,6 @@ EOT
 
         $limit = (int) $helper->ask($input, $output, $question);
 
-        if ($this->countOrphanedPageRelations() <= 0) {
-            return 0;
-        }
-
         $this->deleteOrphanedPageRelations($limit);
 
         $this->io->success('Done');
@@ -132,5 +128,45 @@ EOT
                 $this->gateway->removePage((int) $records[$i]);
             }
         }
+
+        $this->io->info('Orphaned blocks and related items which cannot be deleted using the standard procedure will be cleared up now.');
+
+        $orphanedBlocks = $this->gateway->getOrphanedBlockIds($limit);
+
+        $this->io->caution(sprintf('Found %d orphaned blocks within the chosen limit.', count($orphanedBlocks)));
+
+        $orphanedAttributes = $this->gateway->getOrphanedAttributeIds($orphanedBlocks);
+
+        $this->io->caution(
+            sprintf('Found %d orphaned attributes related to the found blocks.', count($orphanedAttributes))
+        );
+
+        $progressBar = $this->io->createProgressBar(6);
+
+        $this->io->info('Removing orphaned ezpage_map_attributes_blocks records');
+        $this->gateway->removeOrphanedBlockAttributes($orphanedAttributes);
+        $progressBar->advance();
+
+        $this->io->info('Removing orphaned ezpage_attributes records');
+        $this->gateway->removeOrphanedAttributes($orphanedAttributes);
+        $progressBar->advance();
+
+        $this->io->info('Removing orphaned ezpage_blocks_design records');
+        $this->gateway->removeOrphanedBlockDesigns($orphanedBlocks);
+        $progressBar->advance();
+
+        $this->io->info('Removing orphaned ezpage_blocks_visibility records');
+        $this->gateway->removeOrphanedBlockVisibilities($orphanedBlocks);
+        $progressBar->advance();
+
+        $this->io->info('Removing orphaned ezpage_blocks records');
+        $this->gateway->removeOrphanedBlocks($orphanedBlocks);
+        $progressBar->advance();
+
+        $this->io->info('Removing orphaned ezpage_map_blocks_zones records');
+        $this->gateway->removeOrphanedBlocksZones($orphanedBlocks);
+        $progressBar->advance();
+
+        $this->io->newLine();
     }
 }
