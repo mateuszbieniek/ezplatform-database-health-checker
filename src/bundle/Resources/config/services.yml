@@ -26,6 +26,7 @@ services:
     MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command\PageFieldTypeCleanupCommand:
         arguments:
             $gateway: '@MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\PageFieldTypeDoctrineDatabase'
+            $repository: '@ezpublish.api.repository'
         tags:
             - { name: 'console.command', command: 'ezplatform:page-fieldtype-cleanup' }
 
