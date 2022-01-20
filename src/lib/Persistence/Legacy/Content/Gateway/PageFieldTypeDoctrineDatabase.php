@@ -91,4 +91,180 @@ class PageFieldTypeDoctrineDatabase implements PageFieldTypeGatewayInterface
             $this->pageFieldTypeGateway->removeZone((int) $zone['id']);
         }
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getOrphanedBlockIds(int $limit): array
+    {
+        //fetching the first set via ezpage_map_blocks_zones table
+        $zonesQuery = $this->connection->createQueryBuilder();
+        $zonesQuery = $zonesQuery->select('id')
+            ->from('ezpage_zones')
+            ->getSQL();
+
+        $orphanedBlocksQuery = $this->connection->createQueryBuilder();
+        $orphanedBlocksQuery->select('block_id')
+            ->from('ezpage_map_blocks_zones', 'bz')
+            ->where(
+                $orphanedBlocksQuery->expr()->notIn(
+                    'zone_id',
+                    $zonesQuery
+                )
+            )
+            ->setMaxResults($limit);
+
+        $firstResult = $orphanedBlocksQuery->execute()->fetchAll(FetchMode::COLUMN);
+
+        //fetching the second set via ezpage_map_zones_pages table
+        $pagesQuery = $this->connection->createQueryBuilder();
+        $pagesQuery = $pagesQuery->select('id')
+            ->from('ezpage_pages')
+            ->getSQL();
+
+        $secondZonesQuery = $this->connection->createQueryBuilder();
+        $secondZonesQuery->select('zone_id')
+            ->from('ezpage_map_zones_pages', 'zp')
+            ->where(
+                $secondZonesQuery->expr()->notIn(
+                    'page_id',
+                    $pagesQuery
+                )
+            );
+
+        $secondOrphanedBlocksQuery = $this->connection->createQueryBuilder();
+        $secondOrphanedBlocksQuery->select('block_id')
+            ->from('ezpage_map_blocks_zones', 'bz')
+            ->where(
+                $secondOrphanedBlocksQuery->expr()->in(
+                    'zone_id',
+                    $secondZonesQuery->getSQL()
+                )
+            )
+            ->setMaxResults($limit);
+
+        $secondResult = $secondOrphanedBlocksQuery->execute()->fetchAll(FetchMode::COLUMN);
+
+        return array_unique(array_merge($firstResult, $secondResult));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getOrphanedAttributeIds(array $blockIds): array
+    {
+        $orphanedAttributesQuery = $this->connection->createQueryBuilder();
+        $orphanedAttributesQuery->select('attribute_id')
+            ->from('ezpage_map_attributes_blocks')
+            ->where(
+                $orphanedAttributesQuery->expr()->in(
+                    'block_id',
+                    $orphanedAttributesQuery->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        return $orphanedAttributesQuery->execute()->fetchAll(FetchMode::COLUMN);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeOrphanedBlockAttributes(array $attributeIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_map_attributes_blocks')
+            ->where(
+                $query->expr()->in(
+                    'attribute_id',
+                    $query->createPositionalParameter($attributeIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeOrphanedAttributes(array $attributeIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_attributes')
+            ->where(
+                $query->expr()->in(
+                    'id',
+                    $query->createPositionalParameter($attributeIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeOrphanedBlockDesigns(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_blocks_design')
+            ->where(
+                $query->expr()->in(
+                    'block_id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeOrphanedBlockVisibilities(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_blocks_visibility')
+            ->where(
+                $query->expr()->in(
+                    'block_id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeOrphanedBlocksZones(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_map_blocks_zones')
+            ->where(
+                $query->expr()->in(
+                    'block_id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeOrphanedBlocks(array $blockIds): void
+    {
+        $query = $this->connection->createQueryBuilder();
+        $query->delete('ezpage_blocks')
+            ->where(
+                $query->expr()->in(
+                    'id',
+                    $query->createPositionalParameter($blockIds, Connection::PARAM_INT_ARRAY)
+                )
+            );
+
+        $query->execute();
+    }
 }

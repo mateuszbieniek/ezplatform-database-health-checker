@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MateuszBieniek\EzPlatformDatabaseHealthCheckerBundle\Command;
 
+use Exception;
+use eZ\Publish\API\Repository\Repository;
 use MateuszBieniek\EzPlatformDatabaseHealthChecker\Persistence\Legacy\Content\Gateway\PageFieldTypeGatewayInterface as Gateway;
 use Symfony\Bundle\MakerBundle\Validator;
 use Symfony\Component\Console\Command\Command;
@@ -22,9 +24,13 @@ class PageFieldTypeCleanupCommand extends Command
     /** @var Gateway */
     private $gateway;
 
-    public function __construct(Gateway $gateway)
+    /** @var \eZ\Publish\API\Repository\Repository */
+    private $repository;
+
+    public function __construct(Gateway $gateway, Repository $repository)
     {
         $this->gateway = $gateway;
+        $this->repository = $repository;
 
         parent::__construct();
     }
@@ -90,10 +96,7 @@ EOT
 
         $limit = (int) $helper->ask($input, $output, $question);
 
-        if ($this->countOrphanedPageRelations() <= 0) {
-            return 0;
-        }
-
+        $this->countOrphanedPageRelations();
         $this->deleteOrphanedPageRelations($limit);
 
         $this->io->success('Done');
@@ -101,22 +104,21 @@ EOT
         return 0;
     }
 
-    private function countOrphanedPageRelations(): int
+    private function countOrphanedPageRelations(): void
     {
         $count = $this->gateway->countOrphanedPageRelations();
 
         $count <= 0
             ? $this->io->success('Found: 0')
             : $this->io->caution(sprintf('Found: %d orphaned pages', $count));
-
-        return $count;
     }
 
     private function deleteOrphanedPageRelations(int $limit): void
     {
         if (!$this->io->confirm(
             sprintf('Are you sure that you want to proceed? The maximum number of pages that will be cleaned
-             in this iteration is equal to %d.', $limit),
+             in this iteration is equal to %d. If the number is equal to 0 you can still continue to run the remaining
+             cleaning methods.', $limit),
             false)
         ) {
             return;
@@ -131,6 +133,61 @@ EOT
                 $progressBar->advance(1);
                 $this->gateway->removePage((int) $records[$i]);
             }
+        }
+
+        $this->deleteUnrelatedLeftovers($limit);
+    }
+
+    private function deleteUnrelatedLeftovers(int $limit): void
+    {
+        $this->io->info('Orphaned blocks and related items which cannot be deleted using the standard procedure will be searched for now.');
+
+        $orphanedBlocks = $this->gateway->getOrphanedBlockIds($limit);
+        $orphanedAttributes = $this->gateway->getOrphanedAttributeIds($orphanedBlocks);
+
+        $this->io->caution(sprintf('Found %d orphaned blocks within the chosen limit.', count($orphanedBlocks)));
+
+        $this->io->caution(sprintf('Found %d orphaned attributes related to the found blocks.', count($orphanedAttributes)));
+
+        if (!$this->io->confirm('Are you sure that you want to proceed? The block-related records will be now removed.', false)) {
+            return;
+        }
+
+        $this->repository->beginTransaction();
+
+        try {
+            $progressBar = $this->io->createProgressBar(6);
+
+            $this->io->info('Removing orphaned ezpage_map_attributes_blocks records');
+            $this->gateway->removeOrphanedBlockAttributes($orphanedAttributes);
+            $progressBar->advance();
+
+            $this->io->info('Removing orphaned ezpage_attributes records');
+            $this->gateway->removeOrphanedAttributes($orphanedAttributes);
+            $progressBar->advance();
+
+            $this->io->info('Removing orphaned ezpage_blocks_design records');
+            $this->gateway->removeOrphanedBlockDesigns($orphanedBlocks);
+            $progressBar->advance();
+
+            $this->io->info('Removing orphaned ezpage_blocks_visibility records');
+            $this->gateway->removeOrphanedBlockVisibilities($orphanedBlocks);
+            $progressBar->advance();
+
+            $this->io->info('Removing orphaned ezpage_blocks records');
+            $this->gateway->removeOrphanedBlocks($orphanedBlocks);
+            $progressBar->advance();
+
+            $this->io->info('Removing orphaned ezpage_map_blocks_zones records');
+            $this->gateway->removeOrphanedBlocksZones($orphanedBlocks);
+            $progressBar->advance();
+
+            $this->io->newLine();
+
+            $this->repository->commit();
+        } catch (Exception $e) {
+            $this->repository->rollback();
+            throw $e;
         }
     }
 }
